@@ -9,7 +9,7 @@
 
   <groupId>ssscm</groupId>
   <artifactId>SSSCM</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <packaging>hpi</packaging>
 
   <licenses>
