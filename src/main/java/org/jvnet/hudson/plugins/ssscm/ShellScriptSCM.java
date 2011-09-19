@@ -1,5 +1,7 @@
 /**
- * Copyright (c) <2011> <Richard Sczepczenski>
+ * The MIT License
+ * 
+ * Copyright (c) 2011, Richard Sczepczenski
  *
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy 
@@ -27,17 +29,12 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-//import java.util.Map;
-//import java.util.logging.Level;
-//import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
-//import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-//import hudson.Proc;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -46,12 +43,13 @@ import hudson.model.TaskListener;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
 import hudson.scm.SCMRevisionState;
-//import hudson.scm.RepositoryBrowser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.tasks.Messages;
 
 /**
+ * A class to utilize shell scripts as an SCM
+ * 
  * @author <a href="mailto:rms27@optonline.net">Richard Sczepczenski</a>
  *
  */
@@ -59,21 +57,48 @@ public class ShellScriptSCM extends SCM implements Serializable{
 
 
 	/**
-	 * 
+	 * Default serial version.
 	 */
 	private static final long serialVersionUID = 1L;
 	
+	/**
+	 * The shell to be used to execute command line programs/scripts.
+	 */
 	private final String SHELL           = "/bin/sh";
+	
+	/**
+	 * Temporary file name used for executing shell scripts.
+	 */
 	private final String TEMP_FILE_NAME  = "SSSCM";
+	
+	/**
+	 * The file extension of the temporary file.
+	 */
 	private final String TEMP_FILE_EXT   = ".sh";
+	
+	/**
+	 * The checkout shell.
+	 */
 	private String checkoutShell;
+	
+	/**
+	 * The polling shell.
+	 */
 	private String pollingShell;
+	
+	/**
+	 * Configuration option: Set to true to use the checkout shell for polling.  The
+	 * default is false.
+	 */
 	private boolean useCheckoutForPolling;
 
 	/**
-	 * <a>Creates the ShellScriptSCM</a>
-	 * @param checkoutShell The shell command used when a checkout is done
-	 * @param pollingShell The shell command to use for polling
+	 * Creates the ShellScriptSCM.
+	 * 
+	 * @param checkoutShell 
+	 *      The shell command used when a checkout is done.
+	 * @param pollingShell 
+	 *      The shell command to use for polling.
 	 */
 	public ShellScriptSCM(String checkoutShell, String pollingShell) {
 		this.checkoutShell = checkoutShell;
@@ -83,24 +108,30 @@ public class ShellScriptSCM extends SCM implements Serializable{
 	
 
 	/**
-	 *  <a>Creates the ShellScriptSCM</a>
-	 * @param checkoutShell The shell command used when a checkout is done
-	 * @param pollingShell The shell command to use for polling 
-	 * @param useCheckoutForPolling Set to true to use the checkout shell for polling, false
-	 * if the polling shell is to be used for polling.
+	 *  Creates the ShellScriptSCM.
+	 *  
+	 * @param checkoutShell 
+	 *      The shell command used when a checkout is done. 
+	 *      
+	 * @param pollingShell 
+	 *      The shell command to use for polling.
+	 *      
+	 * @param useCheckoutForPolling 
+	 *      Set to true to use the checkout shell for polling, false
+	 *      if the polling shell is to be used for polling.
 	 */
 	@DataBoundConstructor
 	public ShellScriptSCM(String checkoutShell, String pollingShell, Boolean useCheckoutForPolling) {
 		this.checkoutShell = checkoutShell;
 		this.pollingShell  = pollingShell;
-		this.useCheckoutForPolling = useCheckoutForPolling.booleanValue();
-				
-//		LOGGER.log(Level.SEVERE, "SSSCM created, ShellCmd: " + shellCmd);
-		
+		this.useCheckoutForPolling = useCheckoutForPolling.booleanValue();		
 	}
 
 	/**
-	 * @return The shell command used when a checkout is done
+	 * Returns the shell which is currently being used for 'checkout' operations.
+	 * 
+	 * @return 
+	 *      The shell command used when a checkout is done.
 	 */
 	@Exported
 	public String getCheckoutShell() {
@@ -108,7 +139,10 @@ public class ShellScriptSCM extends SCM implements Serializable{
 	}
 
 	/**
-	 * @param checkoutShell The shell command used when a checkout is done
+	 * Set the shell to be used when a 'checkout' is requested.
+	 * 
+	 * @param checkoutShell 
+	 *      The shell command used when a checkout is done.
 	 */
 	@Exported
 	public void setCheckoutShell(String checkoutShell) {
@@ -116,7 +150,10 @@ public class ShellScriptSCM extends SCM implements Serializable{
 	}
 
 	/**
-	 * @return the pollingShell
+	 * Returns the shell currently being used for polling operations.
+	 * 
+	 * @return 
+	 *      The polling shell.
 	 */
 	@Exported
 	public String getPollingShell() {
@@ -124,7 +161,10 @@ public class ShellScriptSCM extends SCM implements Serializable{
 	}
 
 	/**
-	 * @param pollingShell The shell command to use for polling 
+	 * Set the shell to be used for polling.
+	 * 
+	 * @param pollingShell 
+	 *      The shell command to use for polling.
 	 */
 	@Exported
 	public void setPollingShell(String pollingShell) {
@@ -132,8 +172,11 @@ public class ShellScriptSCM extends SCM implements Serializable{
 	}
 
 	/**
-	 * @return true if the checkout shell is to be used for polling, false if the
-	 * polling shell is to be used for polling.
+	 * Get the state of the conditional for using the checkout shell for polling operations.
+	 * 
+	 * @return 
+	 *      True if the checkout shell is to be used for polling, false if the
+	 *      polling shell is to be used for polling.
 	 */
 	@Exported
 	public boolean isUseCheckoutForPolling() {
@@ -141,19 +184,22 @@ public class ShellScriptSCM extends SCM implements Serializable{
 	}
 
 	/**
-	 * @param useCheckoutForPolling Set to true to use the checkout shell for polling, false
-	 * if the polling shell is to be used for polling.
+	 * Set the conditional for using the checkout shell for polling.
+	 * 
+	 * @param useCheckoutForPolling 
+	 *      Set to true to use the checkout shell for polling, false
+	 *      if the polling shell is to be used for polling.
 	 */
 	@Exported
 	public void setUseCheckoutForPolling(Boolean useCheckoutForPolling) {
 		this.useCheckoutForPolling = useCheckoutForPolling.booleanValue();
 	}
 
-	/* (non-Javadoc)
-	 * @see hudson.scm.SCM#checkout(hudson.model.AbstractBuild, hudson.Launcher, hudson.FilePath, hudson.model.BuildListener, java.io.File)
+	/**
+	 * Checkout is performed by using the specified 'checkout' shell.
 	 */
 	@Override
-	public boolean checkout(AbstractBuild build, Launcher launcher,
+	public boolean checkout(AbstractBuild<?,?> build, Launcher launcher,
 			FilePath workspace, BuildListener listener, File changelogFile)
 			throws IOException, InterruptedException {
 
@@ -162,21 +208,24 @@ public class ShellScriptSCM extends SCM implements Serializable{
 		return true;
 	}
 
-	/* (non-Javadoc)
-	 * @see hudson.scm.SCM#createChangeLogParser()
+	/**
+	 * This method is not implemented.
 	 */
- 	@Override
+	@Override
 	public ChangeLogParser createChangeLogParser() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	
-	/* (non-Javadoc)
-	 * @see hudson.scm.SCM#pollChanges(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener)
+	/**
+	 * This method executes the polling shell in order to determine if there
+	 * are any changes.  If the polling shell exits with exit code '1' then 
+	 * this method will return true to indicate that a checkout must be done. 
+	 * Any other exit code will not trigger a checkout.
 	 */
 	@Override
-	public boolean pollChanges(AbstractProject project, Launcher launcher,
+	public boolean pollChanges(AbstractProject<?,?> project, Launcher launcher,
 			FilePath workspace, TaskListener listener) throws IOException,
 			InterruptedException {
 		int rc = 0;
@@ -196,8 +245,8 @@ public class ShellScriptSCM extends SCM implements Serializable{
 		
 	}
 
-	/* (non-Javadoc)
-	 * @see hudson.scm.SCM#calcRevisionsFromBuild(hudson.model.AbstractBuild, hudson.Launcher, hudson.model.TaskListener)
+	/**
+	 * This method is not implemented.
 	 */
 	@Override
 	public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build,
@@ -208,8 +257,8 @@ public class ShellScriptSCM extends SCM implements Serializable{
 	}
 
 
-	/* (non-Javadoc)
-	 * @see hudson.scm.SCM#compareRemoteRevisionWith(hudson.model.AbstractProject, hudson.Launcher, hudson.FilePath, hudson.model.TaskListener, hudson.scm.SCMRevisionState)
+	/**
+	 * This method is not implemented.
 	 */
 	@Override
 	protected PollingResult compareRemoteRevisionWith(
@@ -231,14 +280,28 @@ public class ShellScriptSCM extends SCM implements Serializable{
     }
 
 	/**
-	 * <a>Helper method to execute a shell command.</a>
-	 * @param shellCmd The shell command to be executed.
-	 * @param launcher The process launcher.
-	 * @param workspace The workspace where the shell command is going to be executed.
-	 * @param listener The TaskListener
-	 * @return The execution status of the shell command.
+	 * Helper method to execute a shell command.
+	 * 
+	 * @param shellCmd 
+	 *      The shell command to be executed.
+	 *      
+	 * @param launcher 
+	 *      The process launcher.
+	 *      
+	 * @param workspace 
+	 *      The workspace where the shell command is going to be executed.
+	 *      
+	 * @param listener 
+	 *      The TaskListener
+	 *      
+	 * @return 
+	 *      The execution status of the shell command.
+	 *      
 	 * @throws IOException
+	 *      If there is an exception during the shell command execution.
+	 *      
 	 * @throws InterruptedException
+	 *      If there is an exception during the shell command execution.
 	 */
 	private int execute(String shellCmd, Launcher launcher, FilePath workspace, TaskListener listener) throws IOException, InterruptedException {
 		FilePath script=null;
@@ -272,7 +335,12 @@ public class ShellScriptSCM extends SCM implements Serializable{
 
 	}
 	
-	
+	/**
+	 * 
+	 * @param shellCmd
+	 * @param script
+	 * @return
+	 */
     private String[] buildCommandLine(String shellCmd, FilePath script) {
         if(shellCmd.startsWith("#!")) {
             // interpreter override
