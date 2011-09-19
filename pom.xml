@@ -3,13 +3,13 @@
   <parent>
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.323</version><!-- which version of Hudson is this plugin built against? -->
+    <version>1.395</version><!-- which version of Hudson is this plugin built against? -->
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>ssscm</groupId>
-  <artifactId>SSSCM</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <groupId>org.jvnet.hudson.plugins.ssscm</groupId>
+  <artifactId>ShellScriptSCM</artifactId>
+  <version>1.0</version>
   <packaging>hpi</packaging>
 
   <licenses>
